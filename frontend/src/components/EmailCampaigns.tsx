@@ -37,7 +37,7 @@ export function EmailCampaigns() {
 
   return (
     <Tabs defaultValue="template" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-4 bg-gray-600">
         <TabsTrigger value="template">Template</TabsTrigger>
         <TabsTrigger value="recipients">Recipients</TabsTrigger>
         <TabsTrigger value="send">Send</TabsTrigger>

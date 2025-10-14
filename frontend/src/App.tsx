@@ -11,12 +11,12 @@ export default function App() {
         <div className='container mx-auto px-6 py-4'>
           <div className='flex items-center gap-3'>
             <div className='h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground'>
-              A
+              <img src="/NUSIS.svg" alt="NUSIS Logo" width={40} height={40} />
             </div>
             <div>
-              <h1>Admin Portal</h1>
+              <h1 className="text-primary-foreground">NUSIS Admin Portal</h1>
               <p className='text-sm text-secondary-content'>
-                Manage your business operations
+                Admin Dashboard for NUSIS personnel
               </p>
             </div>
           </div>

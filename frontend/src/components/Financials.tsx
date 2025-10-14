@@ -189,7 +189,7 @@ export function Financials() {
 
   return (
     <Tabs defaultValue='overview' className='w-full'>
-      <TabsList className='grid w-full grid-cols-3'>
+      <TabsList className='grid w-full grid-cols-3 bg-gray-600'>
         <TabsTrigger value='overview'>Overview</TabsTrigger>
         <TabsTrigger value='transactions'>Transactions</TabsTrigger>
         <TabsTrigger value='reports'>Reports</TabsTrigger>
