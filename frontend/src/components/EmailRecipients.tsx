@@ -12,7 +12,7 @@ export interface Recipient {
   email: string;
   firstName?: string;
   lastName?: string;
-  companyName?: string;
+  schoolName?: string;
 }
 
 interface EmailRecipientsProps {
@@ -24,7 +24,7 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
   const [newEmail, setNewEmail] = useState('');
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
-  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
   const [bulkEmails, setBulkEmails] = useState('');
 
   const addRecipient = () => {
@@ -35,14 +35,14 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
       email: newEmail,
       firstName: newFirstName || undefined,
       lastName: newLastName || undefined,
-      companyName: newCompanyName || undefined,
+      schoolName: newSchoolName || undefined,
     };
 
     onRecipientsChange([...recipients, newRecipient]);
     setNewEmail('');
     setNewFirstName('');
     setNewLastName('');
-    setNewCompanyName('');
+    setNewSchoolName('');
   };
 
   const removeRecipient = (id: string) => {
@@ -105,11 +105,11 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
+              <Label htmlFor="schoolName">School Name</Label>
               <Input
-                id="companyName"
-                value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
+                id="schoolName"
+                value={newSchoolName}
+                onChange={(e) => setNewSchoolName(e.target.value)}
                 placeholder="Acme Inc"
                 onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
               />
@@ -161,7 +161,7 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
                     <TableHead>Email</TableHead>
                     <TableHead>First Name</TableHead>
                     <TableHead>Last Name</TableHead>
-                    <TableHead>Company</TableHead>
+                    <TableHead>School</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -171,7 +171,7 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
                       <TableCell>{recipient.email}</TableCell>
                       <TableCell>{recipient.firstName || '-'}</TableCell>
                       <TableCell>{recipient.lastName || '-'}</TableCell>
-                      <TableCell>{recipient.companyName || '-'}</TableCell>
+                      <TableCell>{recipient.schoolName || '-'}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"

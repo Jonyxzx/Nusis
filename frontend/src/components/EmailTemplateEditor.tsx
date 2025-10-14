@@ -37,7 +37,7 @@ export function EmailTemplateEditor({ onSave, initialTemplate }: EmailTemplateEd
     { name: '{{firstName}}', description: 'Recipient first name' },
     { name: '{{lastName}}', description: 'Recipient last name' },
     { name: '{{email}}', description: 'Recipient email' },
-    { name: '{{companyName}}', description: 'Company name' },
+    { name: '{{schoolName}}', description: 'School name' },
   ];
 
   return (

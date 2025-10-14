@@ -23,7 +23,7 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
       .replace(/\{\{firstName\}\}/g, recipient.firstName || '')
       .replace(/\{\{lastName\}\}/g, recipient.lastName || '')
       .replace(/\{\{email\}\}/g, recipient.email)
-      .replace(/\{\{companyName\}\}/g, recipient.companyName || '');
+      .replace(/\{\{schoolName\}\}/g, recipient.schoolName || '');
   };
 
   const handleSend = async () => {
