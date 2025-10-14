@@ -9,6 +9,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { DateInput } from "./ui/date-input";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -360,9 +361,8 @@ export function Financials() {
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <Label htmlFor='date'>Date</Label>
-                <Input
+                <DateInput
                   id='date'
-                  type='date'
                   value={newTransaction.date}
                   onChange={(e) =>
                     setNewTransaction({
@@ -408,13 +408,18 @@ export function Financials() {
                 <Input
                   id='amount'
                   type='number'
+                  min='0'
+                  step='0.01'
                   value={newTransaction.amount}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    // Strip minus signs and non-numeric except dot
+                    const sanitized = raw.replace(/[^0-9.]/g, '').replace(/^0+(\d)/, '$1');
                     setNewTransaction({
                       ...newTransaction,
-                      amount: e.target.value,
-                    })
-                  }
+                      amount: sanitized,
+                    });
+                  }}
                   placeholder='0.00'
                 />
               </div>

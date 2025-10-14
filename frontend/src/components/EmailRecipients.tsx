@@ -110,7 +110,7 @@ export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipie
                 id="schoolName"
                 value={newSchoolName}
                 onChange={(e) => setNewSchoolName(e.target.value)}
-                placeholder="Acme Inc"
+                placeholder="National University of Singapore"
                 onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
               />
             </div>
