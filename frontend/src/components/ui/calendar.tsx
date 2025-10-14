@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
 import { cn } from "./utils";
-import { buttonVariants } from "./button";
+import { buttonVariants } from "./button-variants";
 
 function Calendar({
   className,
@@ -59,14 +59,16 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
-      components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("size-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("size-4", className)} {...props} />
-        ),
-      }}
+      components={
+        ({
+          IconLeft: (p: React.SVGProps<SVGSVGElement> & { className?: string }) => (
+            <ChevronLeft className={cn("size-4", p.className)} {...p} />
+          ),
+          IconRight: (p: React.SVGProps<SVGSVGElement> & { className?: string }) => (
+            <ChevronRight className={cn("size-4", p.className)} {...p} />
+          ),
+        } as unknown as Partial<Record<string, unknown>>)
+      }
       {...props}
     />
   );
