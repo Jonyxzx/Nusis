@@ -1,8 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { EmailCampaigns } from "./components/EmailCampaigns";
-import { Financials } from "./components/Financials";
-import { Mail, DollarSign } from "lucide-react";
-import { Toaster } from "./components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthControls } from "@/components/AuthControls";
+import { AuthBasedContent } from "@/components/AuthBasedContent";
 
 export default function App() {
   return (
@@ -19,46 +17,18 @@ export default function App() {
                 Admin Dashboard for NUSIS personnel
               </p>
             </div>
+            <div className="ml-auto text-primary-foreground">
+              {/* Show login or logout depending on auth state */}
+              <AuthControls />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className='admin-header'>
-        <div className='container mx-auto px-6'>
-          <Tabs defaultValue='email' className='w-full'>
-            <TabsList className='h-auto bg-transparent border-0 gap-2 p-0'>
-              <TabsTrigger
-                value='email'
-                className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
-              >
-                <Mail className='h-4 w-4' />
-                Email Campaigns
-              </TabsTrigger>
-              <TabsTrigger
-                value='financials'
-                className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
-              >
-                <DollarSign className='h-4 w-4' />
-                Financials
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value='email' className='mt-0'>
-              <div className='container mx-auto py-8'>
-                <EmailCampaigns />
-              </div>
-            </TabsContent>
-
-            <TabsContent value='financials' className='mt-0'>
-              <div className='container mx-auto py-8'>
-                <Financials />
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      <AuthBasedContent />
 
       <Toaster />
     </div>
   );
 }
+
