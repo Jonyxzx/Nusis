@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AuthContext } from './auth-context';
 import type { User } from './auth-context';
+import api from './api';
 
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -9,15 +10,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refresh = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/me`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        setUser(null);
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user ?? data);
+      const res = await api.get('/api/me');
+      setUser(res.data.user ?? res.data);
     } catch {
       setUser(null);
     } finally {
@@ -36,10 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || ''}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await api.post('/auth/logout');
     } catch {
       // ignore
     }
