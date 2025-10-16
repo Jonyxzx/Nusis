@@ -220,6 +220,51 @@ html {
     @apply border border-border rounded-lg overflow-hidden;
   }
 
+  /* Wizard / Timeline styles */
+  .wizard {
+    @apply w-full;
+  }
+
+  .wizard-list {
+    @apply flex items-center w-full;
+  }
+
+  .wizard-step {
+    @apply flex-1 flex items-center;
+  }
+
+  .wizard-connector {
+    @apply h-px flex-1 bg-gray-200;
+  }
+
+  .wizard-connector.completed {
+    @apply bg-green-500;
+  }
+
+  .wizard-circle {
+    @apply h-10 w-10 flex items-center justify-center rounded-full text-sm font-semibold shadow-sm bg-white text-gray-700 ring-1 ring-gray-200;
+  }
+
+  .wizard-circle.active {
+    @apply bg-blue-600 text-white;
+  }
+
+  .wizard-circle.completed {
+    @apply bg-green-500 text-white;
+  }
+
+  .wizard-label {
+    @apply mt-2 text-center text-sm font-medium text-primary-foreground max-w-[100px] truncate absolute top-full left-1/2 -translate-x-1/2 mt-2;
+  }
+
+  .wizard-controls {
+    @apply mt-6 flex items-center justify-between;
+  }
+
+  .wizard-helper {
+    @apply mt-2 text-xs text-red-600;
+  }
+
   .income-text {
     @apply text-emerald-500;
   }

@@ -1,29 +1,66 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/badge';
-import { Mail } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Badge } from "./ui/badge";
+import { Mail } from "lucide-react";
+import { useEmailLogs } from "@/lib/emailLogsStore";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
 export interface EmailLog {
   id: string;
   subject: string;
   recipientCount: number;
   sentAt: string;
-  status: 'sent' | 'failed' | 'pending';
+  status: "sent" | "failed" | "pending";
 }
 
 interface EmailHistoryProps {
-  logs: EmailLog[];
+  logs?: EmailLog[];
 }
 
 export function EmailHistory({ logs }: EmailHistoryProps) {
+  const ctx = useEmailLogs();
+  const [fetched, setFetched] = useState<EmailLog[] | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get("/api/email-history")
+      .then((res) => {
+        if (!mounted) return;
+        setFetched(res.data?.logs ?? []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setFetched([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const effectiveLogs = logs ?? fetched ?? ctx.logs;
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'sent':
-        return <Badge variant="default">Sent</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+      case "sent":
+        return <Badge variant='default'>Sent</Badge>;
+      case "failed":
+        return <Badge variant='destructive'>Failed</Badge>;
+      case "pending":
+        return <Badge variant='secondary'>Pending</Badge>;
       default:
         return null;
     }
@@ -33,19 +70,19 @@ export function EmailHistory({ logs }: EmailHistoryProps) {
     <Card>
       <CardHeader>
         <CardTitle>Email History</CardTitle>
-        <CardDescription>View all sent email campaigns</CardDescription>
+        <CardDescription>View all sent emails</CardDescription>
       </CardHeader>
       <CardContent>
-        {logs.length === 0 ? (
-          <div className="text-center py-12">
-            <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <div className="text-secondary-content">No emails sent yet</div>
-            <div className="text-sm text-muted-foreground mt-2">
-              Your sent email campaigns will appear here
+        {effectiveLogs.length === 0 ? (
+          <div className='text-center py-12'>
+            <Mail className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+            <div className='text-secondary-content'>No emails sent yet</div>
+            <div className='text-sm text-muted-foreground mt-2'>
+              Your sent emails will appear here
             </div>
           </div>
         ) : (
-          <div className="data-table">
+          <div className='data-table'>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -56,11 +93,13 @@ export function EmailHistory({ logs }: EmailHistoryProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {logs.map((log) => (
+                {effectiveLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>{log.subject}</TableCell>
                     <TableCell>{log.recipientCount}</TableCell>
-                    <TableCell>{new Date(log.sentAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {new Date(log.sentAt).toLocaleString()}
+                    </TableCell>
                     <TableCell>{getStatusBadge(log.status)}</TableCell>
                   </TableRow>
                 ))}

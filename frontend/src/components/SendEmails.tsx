@@ -40,6 +40,22 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
     setIsSending(false);
     setSent(true);
     onSend();
+    // report to backend
+    try {
+      await fetch('/api/email-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: Date.now().toString(),
+          subject: template.subject,
+          recipientCount: recipients.length,
+          sentAt: new Date().toISOString(),
+          status: 'sent',
+        }),
+      });
+    } catch {
+      // ignore
+    }
   };
 
   const previewEmail = recipients.length > 0 ? recipients[0] : null;
@@ -57,10 +73,6 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <div className="text-sm text-secondary-content">From</div>
-              <div className="text-primary-content">{template.fromName} &lt;{template.fromEmail}&gt;</div>
-            </div>
             <div className="space-y-1">
               <div className="text-sm text-secondary-content">Recipients</div>
               <div className="text-primary-content">{recipients.length} recipients</div>
