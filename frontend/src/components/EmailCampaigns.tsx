@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { EmailTemplateEditor, type EmailTemplate } from "./EmailTemplateEditor";
 import { EmailRecipients, type Recipient } from "./EmailRecipients";
 import { SendEmails } from "./SendEmails";
@@ -9,6 +9,86 @@ import { Button } from "./ui/button";
 import { useEmailLogs } from "@/lib/emailLogsStore";
 
 const STEP_TITLES = ["Template", "Recipients", "Review & Send"] as const;
+const STEP_ICONS = [Edit3, Users, Send] as const;
+
+// Custom hook for scroll animation
+function useScrollAnimation(currentStep: number) {
+  const isScrollingRef = useRef(false);
+
+  useEffect(() => {
+    if (isScrollingRef.current) return;
+
+    isScrollingRef.current = true;
+
+    // Prevent user scrolling during animation
+    const preventScroll = (e: Event) => e.preventDefault();
+    const preventKeys = (e: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", preventScroll, { passive: false });
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    window.addEventListener("keydown", preventKeys);
+
+    const documentHeight = Math.max(
+      document.body.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.clientHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    );
+    const viewportHeight = window.innerHeight;
+
+    // Temporarily extend page height for short pages
+    let cleanupHeight: (() => void) | null = null;
+    if (documentHeight <= viewportHeight + 50) {
+      const originalMinHeight = document.body.style.minHeight;
+      const originalBackgroundColor = document.body.style.backgroundColor;
+      document.body.style.minHeight = `${viewportHeight + 500}px`;
+
+      const appContainer = document.querySelector('.admin-content');
+      if (appContainer) {
+        document.body.style.backgroundColor = getComputedStyle(appContainer).backgroundColor;
+      }
+
+      cleanupHeight = () => {
+        document.body.style.minHeight = originalMinHeight;
+        document.body.style.backgroundColor = originalBackgroundColor;
+      };
+
+      setTimeout(cleanupHeight, 550);
+    }
+
+    // Perform scroll animation
+    const targetPosition = Math.min(300, Math.max(200, documentHeight - viewportHeight - 100));
+
+    window.scrollTo({ top: targetPosition, behavior: "instant" });
+    const afterScroll = window.scrollY;
+
+    if (afterScroll === 0 || afterScroll < targetPosition * 0.8) {
+      document.documentElement.scrollTop = document.body.scrollTop = targetPosition;
+    }
+
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+
+    // Cleanup
+    const cleanupScroll = () => {
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("keydown", preventKeys);
+      isScrollingRef.current = false;
+    };
+
+    setTimeout(cleanupScroll, 500);
+
+    return () => {
+      cleanupScroll();
+      cleanupHeight?.();
+    };
+  }, [currentStep]);
+}
 
 export function EmailCampaigns() {
   const [template, setTemplate] = useState<EmailTemplate>({
@@ -20,111 +100,94 @@ export function EmailCampaigns() {
   const { logs, addLog } = useEmailLogs();
   const [templateSaved, setTemplateSaved] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
-  // dedupe recent selections to avoid duplicate toasts when effects fire twice
+
+  // Dedupe recent selections to avoid duplicate toasts
   const lastSelectRef = useRef<{ key: string; ts: number } | null>(null);
 
-  // template selection handled inline via onSelect below
+  // Use scroll animation hook
+  useScrollAnimation(currentStep);
 
   const handleSendEmails = () => {
     const newLog: EmailLog = {
-      id: Date.now().toString(),
+      _id: Date.now().toString(),
       subject: template.subject,
       recipientCount: recipients.length,
-      sentAt: new Date().toISOString(),
-      status: "sent",
+      templateName: "",
+      recipients: [],
+      successCount: 0,
+      failedCount: 0,
+      startedAt: new Date()
     };
 
     addLog(newLog);
     toast.success(`Campaign sent to ${recipients.length} recipients!`);
   };
 
-  const nextStep = () =>
-    setCurrentStep((s) => Math.min(s + 1, STEP_TITLES.length - 1));
+  const nextStep = () => setCurrentStep((s) => Math.min(s + 1, STEP_TITLES.length - 1));
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
-  // completion rules:
-  // step 0 (Template) is complete when `templateSaved` is true
-  // step 1 (Recipients) is complete when there is at least one recipient
-  // step 2 (Review & Send) is considered "allowed" when recipients exist (you can review),
-  // but sending is an explicit action handled by the SendEmails component; history (step 3)
-  // becomes available after a campaign has been sent (emailLogs.length > 0)
-  const step0Complete = templateSaved;
-  const step1Complete = recipients.length > 0;
-  const step2Complete = logs.length > 0; // indicates a campaign has been sent
+  // Step completion logic
+  const stepCompletions = [
+    templateSaved, // Template step
+    recipients.length > 0, // Recipients step
+    logs.length > 0 // Review & Send step (campaign sent)
+  ];
 
-  // compute the highest step the user is allowed to jump to (forward)
-  let allowedStep = 0;
-  if (step0Complete) allowedStep = Math.max(allowedStep, 1);
-  if (step1Complete) allowedStep = Math.max(allowedStep, 2);
-  if (step2Complete) allowedStep = Math.max(allowedStep, 2);
+  const allowedStep = stepCompletions.findIndex(complete => !complete) - 1;
 
   const canAdvanceFrom = (step: number) => {
-    if (step === 0) return step0Complete;
-    if (step === 1) return step1Complete;
-    // on the review step, sending is done via the child component, so Next should be disabled
-    // to avoid confusion; SendEmails will call onSend and navigate to History when done.
-    if (step === 2) return false;
-    return false;
+    if (step === 0) return stepCompletions[0];
+    if (step === 1) return stepCompletions[1];
+    return false; // Review step doesn't advance via Next
+  };
+
+  const getHelperMessage = (step: number) => {
+    if (step === 0) return "Please select a template to continue.";
+    if (step === 1) return "Please add at least one recipient to continue.";
+    return "";
+  };
+
+  // Step indicator component
+  const StepIndicator = ({ idx, title }: { idx: number; title: string }) => {
+    const active = idx === currentStep;
+    const completed = idx < currentStep || (idx === 0 && stepCompletions[0] && currentStep > 0);
+    const disabled = idx > allowedStep;
+    const Icon = STEP_ICONS[idx];
+
+    return (
+      <li className='wizard-step'>
+        {idx > 0 && (
+          <div className={`wizard-connector ${idx <= currentStep ? "completed" : ""}`} />
+        )}
+
+        <div className='relative px-3 flex items-center justify-center'>
+          <div
+            aria-current={active ? "step" : undefined}
+            aria-disabled={disabled}
+            role='img'
+            aria-label={title}
+          >
+            <div className={`wizard-circle ${active ? "active" : ""} ${completed ? "completed" : ""}`}>
+              {completed ? <Check className='h-5 w-5' /> : <Icon className='h-5 w-5' />}
+            </div>
+          </div>
+          <div className='wizard-label'>{title}</div>
+        </div>
+
+        {idx < STEP_TITLES.length - 1 && (
+          <div className={`wizard-connector ${idx < currentStep ? "completed" : ""}`} />
+        )}
+      </li>
+    );
   };
 
   return (
     <div className='wizard'>
-      {/* Timeline step indicator */}
       <nav aria-label='Email campaign steps'>
         <ul className='wizard-list'>
-          {STEP_TITLES.map((title, idx) => {
-            const active = idx === currentStep;
-            const completed =
-              idx < currentStep ||
-              (idx === 0 && step0Complete && currentStep > 0);
-            const disabled = idx > allowedStep;
-            const Icon = idx === 0 ? Edit3 : idx === 1 ? Users : Send;
-
-            return (
-              <li key={title} className='wizard-step'>
-                {/* left connector */}
-                {idx > 0 && (
-                  <div
-                    className={`wizard-connector ${
-                      idx <= currentStep ? "completed" : ""
-                    }`}
-                  />
-                )}
-
-                {/* step circle + label (label absolutely positioned so it doesn't affect connector alignment) */}
-                <div className='relative px-3 flex items-center justify-center'>
-                  <div
-                    aria-current={active ? "step" : undefined}
-                    aria-disabled={disabled}
-                    role='img'
-                    aria-label={title}
-                  >
-                    <div
-                      className={`wizard-circle ${active ? "active" : ""} ${
-                        completed ? "completed" : ""
-                      }`}
-                    >
-                      {completed ? (
-                        <Check className='h-5 w-5' />
-                      ) : (
-                        <Icon className='h-5 w-5' />
-                      )}
-                    </div>
-                  </div>
-                  <div className='wizard-label'>{title}</div>
-                </div>
-
-                {/* right connector */}
-                {idx < STEP_TITLES.length - 1 && (
-                  <div
-                    className={`wizard-connector ${
-                      idx < currentStep ? "completed" : ""
-                    }`}
-                  />
-                )}
-              </li>
-            );
-          })}
+          {STEP_TITLES.map((title, idx) => (
+            <StepIndicator key={title} idx={idx} title={title} />
+          ))}
         </ul>
       </nav>
 
@@ -133,21 +196,12 @@ export function EmailCampaigns() {
           <div className='mt-4'>
             <EmailTemplateEditor
               onSelect={(t) => {
-                // dedupe identical incoming selections
                 const key = `${t.subject || ""}||${t.body || ""}`;
-                if (
-                  lastSelectRef.current &&
-                  lastSelectRef.current.key === key
-                ) {
-                  return;
-                }
+                if (lastSelectRef.current?.key === key) return;
                 lastSelectRef.current = { key, ts: Date.now() };
 
                 setTemplate(t);
-                // only mark the template step as complete when there is a real template
-                const hasContent = Boolean(
-                  (t.subject && t.subject.trim()) || (t.body && t.body.trim())
-                );
+                const hasContent = Boolean((t.subject?.trim()) || (t.body?.trim()));
                 setTemplateSaved(hasContent);
                 if (hasContent) toast.success("Template selected");
               }}
@@ -176,38 +230,27 @@ export function EmailCampaigns() {
         )}
       </section>
 
-      {/* Navigation controls */}
       <div className='wizard-controls'>
         <div>
-          <Button
-            type='button'
-            onClick={prevStep}
-            disabled={currentStep === 0}
-            variant={"back"}
-            size={"sm"}
-          >
-            Back
-          </Button>
+          {currentStep > 0 && (
+            <Button type='button' onClick={prevStep} variant="back" size="sm">
+              Back
+            </Button>
+          )}
           {currentStep !== STEP_TITLES.length - 1 && (
             <Button
               type='button'
-              onClick={() => {
-                // Only advance when current step is allowed to advance
-                if (canAdvanceFrom(currentStep)) nextStep();
-              }}
+              onClick={() => canAdvanceFrom(currentStep) && nextStep()}
               disabled={!canAdvanceFrom(currentStep)}
-              size={"sm"}
+              size="sm"
             >
               Next
             </Button>
           )}
 
-          {/* helper message when Next is disabled */}
           {!canAdvanceFrom(currentStep) && (
             <div className='wizard-helper'>
-              {currentStep === 0 && "Please select a template to continue."}
-              {currentStep === 1 &&
-                "Please add at least one recipient to continue."}
+              {getHelperMessage(currentStep)}
             </div>
           )}
         </div>
