@@ -14,7 +14,7 @@ export function EmailCampaigns() {
   const [template, setTemplate] = useState<EmailTemplate>({
     subject: "",
     body: "",
-    name: ""
+    name: "",
   });
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const { logs, addLog } = useEmailLogs();
@@ -34,7 +34,7 @@ export function EmailCampaigns() {
       status: "sent",
     };
 
-  addLog(newLog);
+    addLog(newLog);
     toast.success(`Campaign sent to ${recipients.length} recipients!`);
   };
 
@@ -133,22 +133,23 @@ export function EmailCampaigns() {
           <div className='mt-4'>
             <EmailTemplateEditor
               onSelect={(t) => {
-                  // dedupe identical incoming selections within 1 second
-                  const key = `${t.subject || ''}||${t.body || ''}`;
-                  const now = Date.now();
-                  if (lastSelectRef.current && lastSelectRef.current.key === key && now - lastSelectRef.current.ts < 1000) {
-                    console.debug('[EmailCampaigns] duplicate onSelect ignored', { key, now });
-                    return;
-                  }
-                  lastSelectRef.current = { key, ts: now };
+                // dedupe identical incoming selections
+                const key = `${t.subject || ""}||${t.body || ""}`;
+                if (
+                  lastSelectRef.current &&
+                  lastSelectRef.current.key === key
+                ) {
+                  return;
+                }
+                lastSelectRef.current = { key, ts: Date.now() };
 
-                  // debug: log incoming selections to trace duplicates
-                  console.debug('[EmailCampaigns] onSelect received', t);
-                  setTemplate(t);
-                  // only mark the template step as complete when there is a real template
-                  const hasContent = Boolean((t.subject && t.subject.trim()) || (t.body && t.body.trim()));
-                  setTemplateSaved(hasContent);
-                  if (hasContent) toast.success('Template selected');
+                setTemplate(t);
+                // only mark the template step as complete when there is a real template
+                const hasContent = Boolean(
+                  (t.subject && t.subject.trim()) || (t.body && t.body.trim())
+                );
+                setTemplateSaved(hasContent);
+                if (hasContent) toast.success("Template selected");
               }}
               initialTemplate={template}
             />
