@@ -1,8 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmailCampaigns } from "@/components/EmailCampaigns";
-import { Financials } from "@/components/Financials";
-import { Mail, DollarSign } from "lucide-react";
+// import { Financials } from "@/components/Financials";
+import { Mail, Clock, FileText, User2 } from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
+import { EmailHistory } from "@/components/EmailHistory";
+import { Templates } from "./Templates";
+import { Recipients } from "./Recipients";
 
 function AuthBasedContent() {
   const { user } = useAuth();
@@ -18,15 +21,36 @@ function AuthBasedContent() {
               className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
             >
               <Mail className='h-4 w-4' />
-              Email Campaigns
+              Email
             </TabsTrigger>
             <TabsTrigger
+              value='templates'
+              className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
+            >
+              <FileText className='h-4 w-4' />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger
+              value='recipients'
+              className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
+            >
+              <User2 className='h-4 w-4' />
+              Recipients
+            </TabsTrigger>
+            <TabsTrigger
+              value='history'
+              className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
+            >
+              <Clock className='h-4 w-4' />
+              History
+            </TabsTrigger>
+            {/* <TabsTrigger
               value='financials'
               className='gap-2 text-muted-foreground data-[state=active]:text-primary-content data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-4'
             >
               <DollarSign className='h-4 w-4' />
               Financials
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           <TabsContent value='email' className='mt-0'>
@@ -35,11 +59,29 @@ function AuthBasedContent() {
             </div>
           </TabsContent>
 
-          <TabsContent value='financials' className='mt-0'>
+          <TabsContent value='templates' className='mt-0'>
+            <div className='container mx-auto py-8'>
+              <Templates />
+            </div>
+          </TabsContent>
+
+          <TabsContent value='recipients' className='mt-0'>
+            <div className='container mx-auto py-8'>
+              <Recipients />
+            </div>
+          </TabsContent>
+
+          <TabsContent value='history' className='mt-0'>
+            <div className='container mx-auto py-8'>
+              <EmailHistory />
+            </div>
+          </TabsContent>
+
+          {/* <TabsContent value='financials' className='mt-0'>
             <div className='container mx-auto py-8'>
               <Financials />
             </div>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>
