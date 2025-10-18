@@ -44,11 +44,31 @@ export function extractBody(raw: unknown): string {
 export function normalizeHtml(dirty: string): string {
   if (!dirty) return dirty;
   return dirty
-    .replace(/\uFEFF/g, '')
-    .replace(/\u00A0/g, ' ')
-    .replace(/â/g, '–').replace(/â/g, '—').replace(/â¦/g, '…').replace(/â¢/g, '•')
-    .replace(/Â\s+/g, ' ')
-    .replace(/(\r?\n\s*){3,}/g, '\n\n')
+    .replace(/\uFEFF/g, '') // Remove BOM
+    .replace(/\u00A0/g, ' ') // Non-breaking space to regular space
+    // Common UTF-8 to Windows-1252 misencodings (mojibake)
+    .replace(/â/g, "'") // Curly apostrophe
+    .replace(/â/g, '"') // Left double quote
+    .replace(/â/g, '"') // Right double quote
+    .replace(/â/g, '–') // En dash
+    .replace(/â/g, '—') // Em dash
+    .replace(/â¦/g, '…') // Ellipsis
+    .replace(/â¢/g, '•') // Bullet
+    .replace(/â¢/g, '™') // Trademark
+    .replace(/â¢/g, '®') // Registered
+    .replace(/â¬/g, '€') // Euro
+    .replace(/Ã©/g, 'é') // é
+    .replace(/Ã¡/g, 'á') // á
+    .replace(/Ã­/g, 'í') // í
+    .replace(/Ã³/g, 'ó') // ó
+    .replace(/Ãº/g, 'ú') // ú
+    .replace(/Ã±/g, 'ñ') // ñ
+    .replace(/Ã¼/g, 'ü') // ü
+    .replace(/Ã/g, 'Ü') // Ü
+    .replace(/Ã/g, 'ß') // ß
+    .replace(/Â\s+/g, ' ') // Remove Â followed by spaces
+    .replace(/Â/g, '') // Remove remaining Â characters
+    .replace(/(\r?\n\s*){3,}/g, '\n\n') // Collapse multiple newlines
     .trim();
 }
 

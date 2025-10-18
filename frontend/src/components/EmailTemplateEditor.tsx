@@ -8,6 +8,7 @@ import {
 } from "./ui/card";
 import DOMPurify from "dompurify";
 import { extractBody, normalizeHtml } from "@/lib/emailTemplateUtils";
+import { naturalCompare } from "@/lib/sortingUtils";
 import { Label } from "./ui/label";
 import api from "@/lib/api";
 
@@ -72,24 +73,6 @@ export function EmailTemplateEditor({
               fromEmail,
             } as EmailTemplate;
           });
-          const naturalCompare = (a: string, b: string) => {
-            const regex = /(\d+)|(\D+)/g;
-            const aParts = a.match(regex) || [];
-            const bParts = b.match(regex) || [];
-            for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-              const aPart = aParts[i] || "";
-              const bPart = bParts[i] || "";
-              const aNum = parseInt(aPart, 10);
-              const bNum = parseInt(bPart, 10);
-              if (!isNaN(aNum) && !isNaN(bNum)) {
-                if (aNum !== bNum) return aNum - bNum;
-              } else {
-                const cmp = aPart.localeCompare(bPart);
-                if (cmp !== 0) return cmp;
-              }
-            }
-            return 0;
-          };
           decoded.sort((a, b) => {
             const nameA = a.name || a.subject || "";
             const nameB = b.name || b.subject || "";
