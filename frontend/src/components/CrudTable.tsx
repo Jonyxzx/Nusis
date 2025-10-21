@@ -125,85 +125,103 @@ export function CrudTable<T extends { _id?: string }>({
       </div>
 
       {/* Table */}
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead
-                  key={column.key as string}
-                  className={column.sortable ? 'cursor-pointer select-none hover:bg-muted/50' : ''}
-                  onClick={() => column.sortable && handleSort(column.key as string)}
-                >
-                  <div className="flex items-center gap-2 text-primary-foreground">
-                    {column.header}
-                    {column.sortable && sortColumn === column.key && (
-                      <span className="text-xs text-primary-foreground">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </TableHead>
-              ))}
-              {(onEdit || onDelete) && <TableHead className="w-24 text-primary-foreground">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
+      <div className="border rounded-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="min-w-full table-fixed">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="text-center py-8 text-primary-foreground">
-                  {searchTerm ? 'No items found matching your search.' : 'No items found.'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedData.map((item) => (
-                <TableRow
-                  key={item._id || Math.random()}
-                  className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {columns.map((column) => (
-                    <TableCell key={column.key as string} className="text-primary-foreground">
-                      {column.render ? column.render(item) : (item[column.key as keyof T] as React.ReactNode)}
-                    </TableCell>
-                  ))}
-                  {(onEdit || onDelete) && (
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-blue-600">
-                        {onEdit && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit(item);
-                            }}
-                            className="h-8 w-8 p-0"
-                          >
-                            <PencilIcon />
-                          </Button>
-                        )}
-                        {onDelete && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(item);
-                            }}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2Icon />
-                          </Button>
+                {columns.map((column) => {
+                  // Calculate column width based on number of columns
+                  const dataColumnWidth = onEdit || onDelete ? `calc((100% - 6rem) / ${columns.length})` : `${100 / columns.length}%`;
+
+                  return (
+                    <TableHead
+                      key={column.key as string}
+                      className={`${column.sortable ? 'cursor-pointer select-none hover:bg-muted/50' : ''} whitespace-nowrap`}
+                      style={{ width: dataColumnWidth }}
+                      onClick={() => column.sortable && handleSort(column.key as string)}
+                    >
+                      <div className="flex items-center gap-2 text-primary-foreground">
+                        {column.header}
+                        {column.sortable && sortColumn === column.key && (
+                          <span className="text-xs text-primary-foreground">
+                            {sortDirection === 'asc' ? '↑' : '↓'}
+                          </span>
                         )}
                       </div>
-                    </TableCell>
-                  )}
+                    </TableHead>
+                  );
+                })}
+                {(onEdit || onDelete) && <TableHead className="w-24 text-primary-foreground whitespace-nowrap" style={{ width: '6rem' }}>Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="text-center py-8 text-primary-foreground">
+                    {searchTerm ? 'No items found matching your search.' : 'No items found.'}
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                paginatedData.map((item) => (
+                  <TableRow
+                    key={item._id || Math.random()}
+                    className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    onClick={() => onRowClick?.(item)}
+                  >
+                    {columns.map((column) => {
+                      const dataColumnWidth = onEdit || onDelete ? `calc((100% - 6rem) / ${columns.length})` : `${100 / columns.length}%`;
+
+                      return (
+                        <TableCell
+                          key={column.key as string}
+                          className="text-primary-foreground overflow-hidden"
+                          style={{ width: dataColumnWidth }}
+                        >
+                          <div className="truncate">
+                            {column.render ? column.render(item) : (item[column.key as keyof T] as React.ReactNode)}
+                          </div>
+                        </TableCell>
+                      );
+                    })}
+                    {(onEdit || onDelete) && (
+                      <TableCell className="w-24" style={{ width: '6rem' }}>
+                        <div className="flex items-center gap-1 text-blue-600">
+                          {onEdit && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(item);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <PencilIcon />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(item);
+                              }}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2Icon />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
