@@ -6,7 +6,14 @@ import { useRecipients, type Recipient } from '@/lib/useRecipients';
 
 const RECIPIENT_FIELDS = [
   { key: 'name', label: 'Name', type: 'text' as const, required: true, placeholder: 'Enter recipient name' },
-  { key: 'email', label: 'Email', type: 'email' as const, required: true, placeholder: 'Enter recipient email' },
+  { 
+    key: 'emails', 
+    label: 'Emails', 
+    type: 'textarea' as const, 
+    required: true, 
+    placeholder: 'Enter emails (one per line or comma-separated)',
+    helperText: 'You can enter multiple emails separated by commas or new lines'
+  },
 ];
 
 const RECIPIENT_COLUMNS = [
@@ -16,9 +23,11 @@ const RECIPIENT_COLUMNS = [
     sortable: true,
   },
   {
-    key: 'email',
-    header: 'Email',
-    sortable: true,
+    key: 'emails',
+    header: 'Emails',
+    sortable: false,
+    render: (recipient: Recipient) =>
+      recipient.emails ? recipient.emails.join(', ') : 'N/A',
   },
   {
     key: 'createdAt',
@@ -55,10 +64,19 @@ export function Recipients() {
   };
 
   const handleSubmit = async (data: Partial<Recipient>) => {
+    // Parse emails from textarea (comma or newline separated) into array
+    const processedData = { ...data };
+    if (typeof processedData.emails === 'string') {
+      processedData.emails = (processedData.emails as string)
+        .split(/[,\n]+/)
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+    }
+
     if (isEditing && selectedRecipient?._id) {
-      await updateRecipient(selectedRecipient._id, data);
+      await updateRecipient(selectedRecipient._id, processedData);
     } else {
-      await createRecipient(data as Omit<Recipient, '_id' | 'createdAt' | 'updatedAt'>);
+      await createRecipient(processedData as Omit<Recipient, '_id' | 'createdAt' | 'updatedAt'>);
     }
   };
 
@@ -96,7 +114,16 @@ export function Recipients() {
         title={isEditing ? 'Edit Recipient' : 'Add Recipient'}
         description={isEditing ? 'Update the recipient details below.' : 'Add a new email recipient.'}
         fields={RECIPIENT_FIELDS}
-        initialData={selectedRecipient || {}}
+        initialData={
+          selectedRecipient 
+            ? ({ 
+                ...selectedRecipient, 
+                emails: Array.isArray(selectedRecipient.emails) 
+                  ? selectedRecipient.emails.join('\n') 
+                  : selectedRecipient.emails 
+              } as unknown as Partial<Recipient>)
+            : {}
+        }
         onSubmit={handleSubmit}
         submitButtonText={isEditing ? 'Update Recipient' : 'Create Recipient'}
       />
@@ -105,7 +132,7 @@ export function Recipients() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         title="Delete Recipient"
-        description={`Are you sure you want to delete "${selectedRecipient?.name}" (${selectedRecipient?.email})? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${selectedRecipient?.name}" (${selectedRecipient?.emails?.join(', ')})? This action cannot be undone.`}
         onConfirm={handleConfirmDelete}
       />
     </div>

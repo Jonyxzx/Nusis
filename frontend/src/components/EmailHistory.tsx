@@ -62,7 +62,7 @@ const ITEMS_PER_PAGE = 10;
 // Status Badge Component
 function StatusBadge({ log }: { log: EmailLog }) {
   const totalProcessed = log.successCount + log.failedCount;
-  const isCompleted = totalProcessed === log.recipientCount;
+  const isCompleted = totalProcessed === log.perRecipient?.length;
 
   if (isCompleted) {
     if (log.failedCount === 0) {

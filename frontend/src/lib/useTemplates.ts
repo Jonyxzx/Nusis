@@ -7,8 +7,6 @@ export type EmailTemplate = {
   name: string;
   subject: string;
   body: string;
-  fromName?: string;
-  fromEmail?: string;
   createdAt?: string;
   updatedAt?: string;
 };

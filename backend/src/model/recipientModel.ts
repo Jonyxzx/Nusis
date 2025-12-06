@@ -3,7 +3,7 @@ import { getDb } from "../db/mongo";
 
 export type Recipient = {
 	name: string;
-	email: string;
+	emails: string[];
 	createdAt?: Date;
 	updatedAt?: Date;
 };
@@ -30,7 +30,7 @@ export async function getRecipient(id: string): Promise<RecipientDoc | null> {
 }
 
 export async function findRecipientByEmail(email: string): Promise<RecipientDoc | null> {
-	return collection().findOne({ email });
+	return collection().findOne({ emails: email });
 }
 
 export async function updateRecipient(id: string, data: Partial<Recipient>): Promise<RecipientDoc | null> {

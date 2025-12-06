@@ -16,8 +16,6 @@ export interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
-  fromName?: string;
-  fromEmail?: string;
 }
 
 interface EmailTemplateEditorProps {
@@ -34,8 +32,6 @@ export function EmailTemplateEditor({
       name: "",
       subject: "",
       body: "",
-      fromName: "",
-      fromEmail: "",
     }
   );
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -59,18 +55,16 @@ export function EmailTemplateEditor({
             const t = raw as Record<string, unknown>;
             const subject = (t.subject as string) ?? "";
             const name = (t.name as string) ?? "";
-            const fromName = (t.fromName as string) ?? "";
-            const fromEmail = (t.fromEmail as string) ?? "";
+            const _id = (t._id as string) ?? "";
 
             // Extract/unwrap the body value (handles base64 and nested wrappers)
             const bodyStr = extractBody(t.body ?? t.html ?? t.content ?? "");
 
             return {
+              _id,
               name,
               subject,
               body: bodyStr,
-              fromName,
-              fromEmail,
             } as EmailTemplate;
           });
           decoded.sort((a, b) => {
@@ -172,8 +166,6 @@ export function EmailTemplateEditor({
                     name: "",
                     subject: "",
                     body: "",
-                    fromName: "",
-                    fromEmail: "",
                   };
                   setTemplate(empty);
                   onSelect(empty);
@@ -210,12 +202,6 @@ export function EmailTemplateEditor({
           <div className='space-y-2'>
             <Label>Preview</Label>
             <div className='preview-box p-4 border rounded bg-white'>
-              <div className='text-sm text-gray-600'>From:</div>
-              <div className='text-black mb-3'>
-                {template.fromName || template.fromEmail
-                  ? `${template.fromName || ""} <${template.fromEmail || ""}>`
-                  : "(No sender)"}
-              </div>
               <div className='text-sm text-gray-600'>Subject:</div>
               <div className='text-black mb-3'>
                 {template.subject || "(No subject)"}

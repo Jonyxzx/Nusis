@@ -8,8 +8,6 @@ import { useTemplates, type EmailTemplate } from '@/lib/useTemplates';
 const TEMPLATE_FIELDS = [
   { key: 'name', label: 'Name', type: 'text' as const, required: true, placeholder: 'Enter template name' },
   { key: 'subject', label: 'Subject', type: 'text' as const, required: true, placeholder: 'Enter email subject' },
-  { key: 'fromName', label: 'From Name', type: 'text' as const, placeholder: 'Enter sender name' },
-  { key: 'fromEmail', label: 'From Email', type: 'email' as const, placeholder: 'Enter sender email' },
   { key: 'body', label: 'HTML File', type: 'file' as const, required: true, accept: '.html', placeholder: 'Select HTML file' },
 ];
 
@@ -22,11 +20,6 @@ const TEMPLATE_COLUMNS = [
   {
     key: 'subject',
     header: 'Subject',
-    sortable: true,
-  },
-  {
-    key: 'fromEmail',
-    header: 'From Email',
     sortable: true,
   },
   {

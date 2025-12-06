@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export type Recipient = {
   _id?: string;
   name: string;
-  email: string;
+  emails: string[]; // Array of emails
   createdAt?: string;
   updatedAt?: string;
 };

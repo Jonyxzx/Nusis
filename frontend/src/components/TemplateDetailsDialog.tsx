@@ -69,33 +69,6 @@ export function TemplateDetailsDialog({
 
             <div>
               <h3 className='text-sm font-medium text-muted-foreground mb-2'>
-                FROM INFORMATION
-              </h3>
-              <div className='space-y-1'>
-                {template.fromName && (
-                  <p className='text-sm'>
-                    <span className='font-medium'>Name:</span>{" "}
-                    {template.fromName}
-                  </p>
-                )}
-                {template.fromEmail && (
-                  <p className='text-sm'>
-                    <span className='font-medium'>Email:</span>{" "}
-                    {template.fromEmail}
-                  </p>
-                )}
-                {!template.fromName && !template.fromEmail && (
-                  <p className='text-sm text-muted-foreground'>
-                    No sender information specified
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className='text-sm font-medium text-muted-foreground mb-2'>
                 EMAIL BODY
               </h3>
               <div

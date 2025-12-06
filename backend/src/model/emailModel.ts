@@ -59,3 +59,9 @@ export async function findEmailTemplateByName(name: string): Promise<EmailTempla
 	return collection().findOne({ name: { $regex: rx } } as any);
 }
 
+export interface SendResult {
+	to: string;
+	info?: any;
+	error?: any;
+}
+

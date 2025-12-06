@@ -22,10 +22,11 @@ import DOMPurify from "dompurify";
 import { normalizeHtml } from "@/lib/emailTemplateUtils";
 import type { EmailTemplate } from "./EmailTemplateEditor";
 import type { Recipient } from "./EmailRecipients";
+import api from "@/lib/api";
 
 interface SendEmailsProps {
-  template: EmailTemplate;
-  recipients: Recipient[];
+  template: EmailTemplate & { _id?: string };
+  recipients: (Recipient & { _id?: string })[];
   onSend: () => void;
 }
 
@@ -34,11 +35,18 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
   const [progress, setProgress] = useState(0);
   const [sent, setSent] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [variables, setVariables] = useState<Record<string, string>>({});
+  const [variableInput, setVariableInput] = useState("");
 
   const replaceVariables = (text: string, recipient: Recipient): string => {
-    return text
-      .replace(/\{\{firstName\}\}/g, recipient.name || "")
-      .replace(/\{\{email\}\}/g, recipient.email);
+    let result = text;
+    // Replace custom variables
+    Object.entries(variables).forEach(([key, value]) => {
+      result = result.replaceAll(`{{${key}}}`, value);
+    });
+    // Always replace recipient with the recipient's name
+    result = result.replaceAll("{{recipient}}", recipient.name || "");
+    return result;
   };
 
   const handleSend = async () => {
@@ -52,25 +60,31 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
     setSent(false);
 
     try {
-      // Send POST request to fake endpoint
-      // TODO: Replace with real email sending endpoint
-      const response = await fetch("/api/send-emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template: {
-            subject: template.subject,
-            body: template.body,
-          },
-          recipients: recipients.map((r) => ({ name: r.name, email: r.email })),
-        }),
+      // Validate IDs exist
+      if (!template._id) {
+        throw new Error("Template must be saved before sending");
+      }
+      
+      const recipientIds = recipients
+        .map(r => r._id)
+        .filter(Boolean) as string[];
+      
+      if (recipientIds.length !== recipients.length) {
+        throw new Error("All recipients must be saved before sending");
+      }
+
+      // Send campaign with IDs and variables
+      const response = await api.post("/v1/emails/send", {
+        templateId: template._id,
+        recipientIds,
+        variables,
       });
 
-      if (!response.ok) {
+      if (!response.data.success) {
         throw new Error("Failed to send emails");
       }
 
-      // Simulate progress for demo purposes
+      // Simulate progress for UI feedback
       for (let i = 0; i <= recipients.length; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         setProgress((i / recipients.length) * 100);
@@ -78,26 +92,15 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
 
       setSent(true);
       onSend();
-
-      // Report to email history
-      try {
-        await fetch("/api/email-history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: Date.now().toString(),
-            subject: template.subject,
-            recipientCount: recipients.length,
-            sentAt: new Date().toISOString(),
-            status: "sent",
-          }),
-        });
-      } catch {
-        // ignore history reporting errors
-      }
+      
+      // Refresh the page after successful send
+      setTimeout(() => {
+        globalThis.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("Error sending emails:", error);
-      // In a real app, you'd show an error message here
+      const message = error instanceof Error ? error.message : "Failed to send emails";
+      alert(message); // In production, use a proper toast/notification
     } finally {
       setIsSending(false);
     }
@@ -113,8 +116,87 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
 
   const isReady = template.subject && template.body && recipients.length > 0;
 
+  const handleAddVariable = () => {
+    const trimmed = variableInput.trim();
+    if (!trimmed) return;
+    
+    const parts = trimmed.split("=").map(s => s.trim());
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      alert("Please use format: variableName=value");
+      return;
+    }
+    
+    const [key, value] = parts;
+    if (key === "recipient") {
+      alert('"recipient" is reserved and will always be set to the recipient\'s name');
+      return;
+    }
+    
+    setVariables(prev => ({ ...prev, [key]: value }));
+    setVariableInput("");
+  };
+
+  const handleRemoveVariable = (key: string) => {
+    setVariables(prev => {
+      const newVars = { ...prev };
+      delete newVars[key];
+      return newVars;
+    });
+  };
+
   return (
     <div className='space-y-6'>
+      {/* Template Variables */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Template Variables</CardTitle>
+          <CardDescription>
+            Add custom variables for your email template. Use {`{{variableName}}`} in your template.
+            Note: {`{{recipient}}`} is automatically set to each recipient's name.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='flex gap-2'>
+            <input
+              type='text'
+              value={variableInput}
+              onChange={(e) => setVariableInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddVariable()}
+              placeholder='variableName=value (e.g., companyName=ABC Corp)'
+              className='flex-1 px-3 py-2 border rounded-md'
+            />
+            <Button onClick={handleAddVariable} type='button' size='sm'>
+              Add Variable
+            </Button>
+          </div>
+          
+          {Object.keys(variables).length > 0 && (
+            <div className='space-y-2'>
+              <div className='text-sm font-medium'>Current Variables:</div>
+              <div className='space-y-1'>
+                {Object.entries(variables).map(([key, value]) => (
+                  <div key={key} className='flex items-center justify-between p-2 border rounded bg-muted/50'>
+                    <code className='text-sm'>{`{{${key}}} = ${value}`}</code>
+                    <Button
+                      onClick={() => handleRemoveVariable(key)}
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 px-2'
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className='text-xs text-muted-foreground'>
+            Reserved variable: {`{{recipient}}`} (automatically set to recipient name)
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Campaign Overview */}
       <Card>
         <CardHeader>
@@ -211,7 +293,7 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
                     >
                       <span className='font-medium'>{recipient.name}</span>
                       <span className='text-secondary-content'>
-                        {recipient.email}
+                        {recipient.emails.join(", ")}
                       </span>
                     </div>
                   ))}
@@ -241,8 +323,7 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
             <Alert>
               <CheckCircle className='h-4 w-4' />
               <AlertDescription>
-                Successfully sent {recipients.length} emails! (Note: This is a
-                demo - no actual emails were sent)
+                Successfully sent {recipients.length} emails!
               </AlertDescription>
             </Alert>
           )}
@@ -256,7 +337,7 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
             <CardTitle>Personalized Preview</CardTitle>
             <CardDescription>
               How the email will appear for {previewEmail.name} (
-              {previewEmail.email})
+              {previewEmail.emails.join(", ")})
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -332,12 +413,11 @@ export function SendEmails({ template, recipients, onSend }: SendEmailsProps) {
               : `Send to ${recipients.length} Recipients`}
           </Button>
 
-          {/* To be removed when the api endpoint is ready */}
           <Alert>
             <AlertCircle className='h-4 w-4' />
             <AlertDescription>
-              This will send a POST request to /api/send-emails with your
-              campaign data. A confirmation dialog will appear before sending.
+              Clicking send will trigger the backend to send personalized emails to all selected recipients. 
+              Make sure your template and all recipients are saved before proceeding.
             </AlertDescription>
           </Alert>
         </CardContent>

@@ -21,21 +21,23 @@ Auth: Cookies (Google OAuth). Most endpoints are open in this dev setup unless y
 Base: `/v1/recipients`
 
 - GET `/`
-  - 200 OK `[ { _id, name, email, createdAt, updatedAt } ]`
+  - 200 OK `[ { _id, name, emails: string[], createdAt, updatedAt } ]`
 
 - POST `/`
-  - Body: `{ name: string, email: string }`
-  - 201 Created `{ _id, name, email, createdAt, updatedAt }`
+  - Body: `{ name: string, emails: string[] }`
+  - 201 Created `{ _id, name, emails, createdAt, updatedAt }`
   - 400 on validation failure
+  - 409 if any email already exists
 
 - GET `/:id`
-  - 200 OK `{ _id, name, email, createdAt, updatedAt }`
+  - 200 OK `{ _id, name, emails, createdAt, updatedAt }`
   - 404 if not found
 
 - PUT `/:id`
-  - Body: `{ name?: string, email?: string }`
-  - 200 OK `{ _id, name, email, createdAt, updatedAt }`
+  - Body: `{ name?: string, emails?: string[] }`
+  - 200 OK `{ _id, name, emails, createdAt, updatedAt }`
   - 400 invalid id/body, 404 if not found
+  - 409 if any email already exists for another recipient
 
 - DELETE `/:id`
   - 204 No Content
@@ -46,17 +48,19 @@ Sample create:
 POST /v1/recipients
 Content-Type: application/json
 
-{ "name": "Jane Doe", "email": "jane@example.com" }
+{ "name": "Jane Doe", "emails": ["jane@example.com", "jane.doe@work.com"] }
 ```
+
+**Note:** Each recipient can have multiple email addresses. When sending emails, all addresses for a recipient will receive the same personalized email together (group send).
 
 ## Email Templates
 Base: `/v1/emails`
 
 - GET `/`
-  - 200 OK `[ { _id, name?, subject, body, fromName?, fromEmail?, createdAt, updatedAt } ]`
+  - 200 OK `[ { _id, name, subject, body, createdAt, updatedAt } ]`
 
 - POST `/`
-  - Body: `{ name: string, subject: string, body: string, fromName?: string, fromEmail?: string }`
+  - Body: `{ name: string, subject: string, body: string }`
   - 201 Created `{ _id, ... }`
   - 400 on validation failure
   - 409 when `name` conflicts with an existing template (case-insensitive)
@@ -66,7 +70,7 @@ Base: `/v1/emails`
   - 404 if not found
 
 - PUT `/:id`
-  - Body: `{ name?, subject?, body?, fromName?, fromEmail? }`
+  - Body: `{ name?, subject?, body? }`
   - 200 OK `{ _id, ... }`
   - 400 invalid id/body, 404 if not found
   - 409 when updating `name` to an existing value (case-insensitive)
@@ -82,9 +86,26 @@ Content-Type: application/json
 {
   "name": "Invitation 2025",
   "subject": "Invitation to NUSIS 2025 – TeamNUS Shooting",
-  "body": "<p>Hello {{recipient}}</p>",
-  "fromName": "TeamNUS",
-  "fromEmail": "teamnus@example.com"
+  "body": "<p>Hello {{recipient}}</p>"
+}
+```
+
+- POST `/send`
+  - Body: `{ templateId: string, recipientIds: string[] }`
+  - 200 OK `{ success: true, sent: number, failed: number, total: number, results: [{ email, status, error? }] }`
+  - 400 on validation failure
+  - 404 if template or any recipient not found
+  - Sends personalized emails individually to each recipient using the specified template
+  - Automatically logs the campaign to `/v1/logs`
+
+Sample send:
+```
+POST /v1/emails/send
+Content-Type: application/json
+
+{
+  "templateId": "507f1f77bcf86cd799439011",
+  "recipientIds": ["507f191e810c19729de860ea", "507f191e810c19729de860eb"]
 }
 ```
 

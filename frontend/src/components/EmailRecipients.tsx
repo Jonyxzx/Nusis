@@ -19,7 +19,7 @@ import api from "@/lib/api";
 
 export interface Recipient {
   name: string;
-  email: string;
+  emails: string[];
 }
 
 interface EmailRecipientsProps {
@@ -61,7 +61,7 @@ export function EmailRecipients({
 
   const allSelected =
     paginated.length > 0 &&
-    paginated.every((r) => selectedRecipients.some((s) => s.email === r.email));
+    paginated.every((r) => selectedRecipients.some((s) => JSON.stringify(s.emails) === JSON.stringify(r.emails)));
 
   const handleSelectAllPage = (checked: boolean) => {
     let newSelected: Recipient[];
@@ -69,12 +69,12 @@ export function EmailRecipients({
       newSelected = [
         ...selectedRecipients,
         ...paginated.filter(
-          (r) => !selectedRecipients.some((s) => s.email === r.email)
+          (r) => !selectedRecipients.some((s) => JSON.stringify(s.emails) === JSON.stringify(r.emails))
         ),
       ];
     } else {
       newSelected = selectedRecipients.filter(
-        (s) => !paginated.some((r) => r.email === s.email)
+        (s) => !paginated.some((r) => JSON.stringify(r.emails) === JSON.stringify(s.emails))
       );
     }
     setSelectedRecipients(newSelected);
@@ -99,7 +99,7 @@ export function EmailRecipients({
       newSelected = [...selectedRecipients, recipient];
     } else {
       newSelected = selectedRecipients.filter(
-        (s) => s.email !== recipient.email
+        (s) => JSON.stringify(s.emails) !== JSON.stringify(recipient.emails)
       );
     }
     setSelectedRecipients(newSelected);
@@ -159,12 +159,12 @@ export function EmailRecipients({
                   </TableHeader>
                   <TableBody>
                     {paginated.map((recipient) => (
-                      <TableRow key={recipient.email} className='py-4'>
+                      <TableRow key={recipient.emails.join(", ")} className='py-4'>
                         <TableCell className="px-4">
                           <input
                             type='checkbox'
                             checked={selectedRecipients.some(
-                              (s) => s.email === recipient.email
+                              (s) => JSON.stringify(s.emails) === JSON.stringify(recipient.emails)
                             )}
                             onChange={(e) =>
                               handleSelect(recipient, e.target.checked)
@@ -172,7 +172,7 @@ export function EmailRecipients({
                           />
                         </TableCell>
                         <TableCell className="px-4">{recipient.name}</TableCell>
-                        <TableCell className="px-4">{recipient.email}</TableCell>
+                        <TableCell className="px-4">{recipient.emails.join(", ")}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -222,8 +222,8 @@ export function EmailRecipients({
           ) : (
             <ul className='list-disc list-inside'>
               {selectedRecipients.map((r) => (
-                <li key={r.email}>
-                  {r.name} ({r.email})
+                <li key={r.emails.join(", ")}>
+                  {r.name} ({r.emails.join(", ")})
                 </li>
               ))}
             </ul>

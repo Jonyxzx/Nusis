@@ -3,7 +3,6 @@ import fs from "fs-extra";
 import Handlebars from "handlebars";
 import dotenv from "dotenv";
 
-import type { EmailTemplate, EmailTemplateDoc } from "../model/emailModel";
 import {
   createEmailTemplateModel,
   listEmailTemplatesModel,
@@ -11,7 +10,13 @@ import {
   updateEmailTemplateModel,
   deleteEmailTemplateModel,
   findEmailTemplateByName,
+  EmailTemplate,
+  EmailTemplateDoc,
+  SendResult
 } from "../model/emailModel";
+import { getRecipient } from "../model/recipientModel";
+import { logEmailSend } from "./logService";
+import type { RecipientStatus } from "../model/logModel";
 
 dotenv.config();
 
@@ -29,11 +34,23 @@ export async function createEmailTemplate(data: EmailTemplate): Promise<EmailTem
 }
 
 export async function listEmailTemplates(): Promise<EmailTemplateDoc[]> {
-  return listEmailTemplatesModel();
+  const templates = await listEmailTemplatesModel();
+  // Decode base64 body to HTML for each template
+  return templates.map(template => {
+    if (template.body) {
+      template.body = Buffer.from(template.body, 'base64').toString('utf-8');
+    }
+    return template;
+  });
 }
 
 export async function getEmailTemplate(id: string): Promise<EmailTemplateDoc | null> {
-  return getEmailTemplateModel(id);
+  const template = await getEmailTemplateModel(id);
+  if (template && template.body) {
+    // Decode base64 body to HTML
+    template.body = Buffer.from(template.body, 'base64').toString('utf-8');
+  }
+  return template;
 }
 
 export async function updateEmailTemplate(
@@ -66,56 +83,101 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendTemplatedEmail(
-  to: string | string[],
-  subject: string,
-  templateName: string,
-  variables: Record<string, any> = {}
-) {
-
-  console.log("Testing Gmail SMTP credentials...");
-  console.log("GMAIL_USER:", process.env.GMAIL_USER);
-  console.log("GMAIL_PASS:", process.env.GMAIL_PASS);
-
-  try {
-    await transporter.verify();
-    console.log("Gmail SMTP login successful! Credentials are valid.");
-  } catch (err) {
-    console.error("Gmail SMTP login failed:", err);
+export async function sendEmailCampaign(templateId: string, recipientIds: string[], variables: Record<string, any> = {}) {
+  // Fetch template
+  const template = await getEmailTemplateModel(templateId);
+  if (!template) {
+    throw new Error(`Template not found: ${templateId}`);
   }
 
+  // Decode base64 body to HTML
+  const htmlBody = Buffer.from(template.body, 'base64').toString('utf-8');
+
+  // Fetch recipients
+  const recipients = await Promise.all(
+    recipientIds.map(async (id) => {
+      const recipient = await getRecipient(id);
+      if (!recipient) {
+        throw new Error(`Recipient not found: ${id}`);
+      }
+      return recipient;
+    })
+  );
+
+  const startedAt = new Date();
+  const results: SendResult[] = [];
+
+  // Send to each recipient (group send to all their emails)
+  for (const recipient of recipients) {
+    try {
+      // Merge frontend variables with recipient name (recipient name always overrides)
+      const templateVariables = {
+        ...variables,
+        recipient: recipient.name,
+      };
+
+      // Compile HTML with Handlebars
+      const compiled = Handlebars.compile(htmlBody);
+      const html = compiled(templateVariables);
+
+      // Send email to all addresses for this recipient (group send)
+      const info = await transporter.sendMail({
+        from: `${process.env.GMAIL_NAME} <${process.env.GMAIL_USER}>`,
+        to: recipient.emails.join(', '), // Send to all emails for this recipient
+        subject: template.subject,
+        html,
+      });
+
+      // Record result for each email in the group
+      for (const email of recipient.emails) {
+        results.push({ to: email, info });
+      }
+    } catch (err) {
+      // Record error for each email in the group
+      for (const email of recipient.emails) {
+        results.push({ to: email, error: err });
+      }
+      console.error(`Failed to send email to ${recipient.name} (${recipient.emails.join(', ')}):`, err);
+    }
+  }
+
+  const completedAt = new Date();
+  const successCount = results.filter((r) => r.info).length;
+  const failedCount = results.length - successCount;
+
+  // Log the campaign
+  const perRecipient: RecipientStatus[] = results.map((r) => ({
+    email: r.to,
+    status: r.info ? "sent" : "failed",
+    error: r.error ? String(r.error) : undefined,
+  }));
+
+  const bodyPreview = htmlBody.substring(0, 200);
+
   try {
-    const templatePath = `src/email/templates/${templateName}.html`;
-    const source = await fs.readFile(templatePath, "utf8");
-
-    const compiled = Handlebars.compile(source);
-    const html = compiled(variables);
-
-    const info = await transporter.sendMail({
-      from: `Test <${process.env.GMAIL_USER}>`,
-      to,
-      subject,
-      html,
+    await logEmailSend({
+      templateName: template.name,
+      subject: template.subject,
+      bodyPreview,
+      recipients: recipients.map((r: any) => ({ name: r.name, email: r.email })),
+      perRecipient,
+      recipientCount: recipients.length,
+      successCount,
+      failedCount,
+      startedAt,
+      completedAt,
+      durationMs: completedAt.getTime() - startedAt.getTime(),
+      meta: { templateId },
     });
-
-    console.log(`Sent ${templateName} email to ${to}`);
-    return info;
-  } catch (err) {
-    console.error(`Failed to send ${templateName} email:`, err);
-    throw err;
+  } catch (error_) {
+    console.error("Failed to log email campaign:", error_);
   }
-}
 
-export async function sendNusisInvitation(
-  to: string | string[],
-  params: {
-    recipientSchool: string;
-    signoffName: string;
-    signoffRole: string;
-    signoffOrg: string;
-  }
-) {
-  const subject = "Invitation to NUSIS 2025 - TeamNUS Shooting";
-  return sendTemplatedEmail(to, subject, "nusis-invitation-2025", params);
+  return {
+    success: true,
+    sent: successCount,
+    failed: failedCount,
+    total: recipients.length,
+    results: perRecipient,
+  };
 }
-

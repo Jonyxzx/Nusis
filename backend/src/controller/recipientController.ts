@@ -14,17 +14,25 @@ function isValidEmail(email: string): boolean {
 
 export async function createRecipientHandler(req: Request, res: Response) {
 	try {
-		const { name, email } = req.body || {};
+		const { name, emails } = req.body || {};
 		if (!name || typeof name !== "string") return res.status(400).json({ error: "name is required" });
-		if (!email || typeof email !== "string" || !isValidEmail(email))
-			return res.status(400).json({ error: "valid email is required" });
+		if (!Array.isArray(emails) || emails.length === 0) {
+			return res.status(400).json({ error: "at least one email is required" });
+		}
+		
+		// Validate all emails
+		for (const email of emails) {
+			if (typeof email !== "string" || !isValidEmail(email)) {
+				return res.status(400).json({ error: `invalid email: ${email}` });
+			}
+		}
 
-		const created = await createRecipient({ name, email });
+		const created = await createRecipient({ name, emails });
 		res.status(201).json(created);
 	} catch (err) {
 		console.error("createRecipientHandler error:", err);
 		if ((err as any)?.code === "DUPLICATE_EMAIL") {
-			return res.status(409).json({ error: "Recipient with this email already exists" });
+			return res.status(409).json({ error: (err as any).message });
 		}
 		res.status(500).json({ error: "Internal server error" });
 	}
@@ -55,15 +63,25 @@ export async function getRecipientHandler(req: Request, res: Response) {
 export async function updateRecipientHandler(req: Request, res: Response) {
 	try {
 		const { id } = req.params;
-		const { name, email } = req.body || {};
+		const { name, emails } = req.body || {};
 		const update: any = {};
 		if (name !== undefined) {
 			if (typeof name !== "string" || !name) return res.status(400).json({ error: "invalid name" });
 			update.name = name;
 		}
-		if (email !== undefined) {
-			if (typeof email !== "string" || !isValidEmail(email)) return res.status(400).json({ error: "invalid email" });
-			update.email = email;
+		if (emails !== undefined) {
+			if (!Array.isArray(emails) || emails.length === 0) {
+				return res.status(400).json({ error: "at least one email is required" });
+			}
+			
+			// Validate all emails
+			for (const email of emails) {
+				if (typeof email !== "string" || !isValidEmail(email)) {
+					return res.status(400).json({ error: `invalid email: ${email}` });
+				}
+			}
+			
+			update.emails = emails;
 		}
 		const updated = await updateRecipient(id, update);
 		if (!updated) {
@@ -75,7 +93,7 @@ export async function updateRecipientHandler(req: Request, res: Response) {
 	} catch (err) {
 		console.error("updateRecipientHandler error:", err);
 		if ((err as any)?.code === "DUPLICATE_EMAIL") {
-			return res.status(409).json({ error: "Recipient with this email already exists" });
+			return res.status(409).json({ error: (err as any).message });
 		}
 		res.status(400).json({ error: "Invalid id" });
 	}
