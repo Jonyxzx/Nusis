@@ -22,7 +22,10 @@ app.use(
     secret: process.env.SESSION_SECRET || "default_secret", // replace with a strong secret in production
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // use secure cookies in production
+    cookie: { 
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    }, // use secure cookies in production
   })
 );
 
