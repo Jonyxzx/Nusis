@@ -8,16 +8,19 @@ export default function App() {
       <div className='admin-header'>
         <div className='container mx-auto px-6 py-4'>
           <div className='flex items-center gap-3'>
-            <div className='h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground'>
-              <img src="/NUSIS.svg" alt="NUSIS Logo" width={40} height={40} />
+            <div
+              className='h-10 w-10 rounded-lg flex items-center justify-center cursor-pointer'
+              onClick={() => (window.location.href = "/")}
+            >
+              <img src='/NUSIS.svg' alt='NUSIS Logo' width={40} height={40} />
             </div>
             <div>
-              <h1 className="text-primary-foreground">NUSIS Admin Portal</h1>
+              <h1 className='text-primary-foreground'>NUSIS Admin Portal</h1>
               <p className='text-sm text-secondary-content'>
                 Admin Dashboard for NUSIS personnel
               </p>
             </div>
-            <div className="ml-auto text-primary-foreground">
+            <div className='ml-auto text-primary-foreground'>
               {/* Show login or logout depending on auth state */}
               <AuthControls />
             </div>
@@ -31,4 +34,3 @@ export default function App() {
     </div>
   );
 }
-

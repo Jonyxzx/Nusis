@@ -1,18 +1,25 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Trash2, Plus, Upload } from 'lucide-react';
-import { Textarea } from './ui/textarea';
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import api from "@/lib/api";
 
 export interface Recipient {
-  id: string;
+  name: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  schoolName?: string;
 }
 
 interface EmailRecipientsProps {
@@ -20,172 +27,206 @@ interface EmailRecipientsProps {
   onRecipientsChange: (recipients: Recipient[]) => void;
 }
 
-export function EmailRecipients({ recipients, onRecipientsChange }: EmailRecipientsProps) {
-  const [newEmail, setNewEmail] = useState('');
-  const [newFirstName, setNewFirstName] = useState('');
-  const [newLastName, setNewLastName] = useState('');
-  const [newSchoolName, setNewSchoolName] = useState('');
-  const [bulkEmails, setBulkEmails] = useState('');
+export function EmailRecipients({
+  recipients,
+  onRecipientsChange,
+}: EmailRecipientsProps) {
+  const [allRecipients, setAllRecipients] = useState<Recipient[]>([]);
+  const [selectedRecipients, setSelectedRecipients] = useState<Recipient[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const addRecipient = () => {
-    if (!newEmail) return;
+  useEffect(() => {
+    setSelectedRecipients(recipients);
+  }, [recipients]);
 
-    const newRecipient: Recipient = {
-      id: Date.now().toString(),
-      email: newEmail,
-      firstName: newFirstName || undefined,
-      lastName: newLastName || undefined,
-      schoolName: newSchoolName || undefined,
-    };
+  useEffect(() => {
+    api
+      .get("/v1/recipients")
+      .then((res) => {
+        const data = res.data || [];
+        if (Array.isArray(data)) {
+          const sorted = data.sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+          );
+          setAllRecipients(sorted);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-    onRecipientsChange([...recipients, newRecipient]);
-    setNewEmail('');
-    setNewFirstName('');
-    setNewLastName('');
-    setNewSchoolName('');
+  const totalPages = Math.ceil(allRecipients.length / pageSize);
+  const start = (currentPage - 1) * pageSize;
+  const paginated = allRecipients.slice(start, start + pageSize);
+
+  const allSelected =
+    paginated.length > 0 &&
+    paginated.every((r) => selectedRecipients.some((s) => s.email === r.email));
+
+  const handleSelectAllPage = (checked: boolean) => {
+    let newSelected: Recipient[];
+    if (checked) {
+      newSelected = [
+        ...selectedRecipients,
+        ...paginated.filter(
+          (r) => !selectedRecipients.some((s) => s.email === r.email)
+        ),
+      ];
+    } else {
+      newSelected = selectedRecipients.filter(
+        (s) => !paginated.some((r) => r.email === s.email)
+      );
+    }
+    setSelectedRecipients(newSelected);
+    onRecipientsChange(newSelected);
   };
 
-  const removeRecipient = (id: string) => {
-    onRecipientsChange(recipients.filter((r) => r.id !== id));
+  const handleSelectAllGlobal = () => {
+    const newSelected = [...allRecipients];
+    setSelectedRecipients(newSelected);
+    onRecipientsChange(newSelected);
   };
 
-  const addBulkRecipients = () => {
-    const emails = bulkEmails
-      .split('\n')
-      .map((e) => e.trim())
-      .filter((e) => e && e.includes('@'));
+  const handleUnselectAllGlobal = () => {
+    const newSelected: Recipient[] = [];
+    setSelectedRecipients(newSelected);
+    onRecipientsChange(newSelected);
+  };
 
-    const newRecipients: Recipient[] = emails.map((email) => ({
-      id: Date.now().toString() + Math.random(),
-      email,
-    }));
-
-    onRecipientsChange([...recipients, ...newRecipients]);
-    setBulkEmails('');
+  const handleSelect = (recipient: Recipient, checked: boolean) => {
+    let newSelected;
+    if (checked) {
+      newSelected = [...selectedRecipients, recipient];
+    } else {
+      newSelected = selectedRecipients.filter(
+        (s) => s.email !== recipient.email
+      );
+    }
+    setSelectedRecipients(newSelected);
+    onRecipientsChange(newSelected);
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <Card>
         <CardHeader>
-          <CardTitle>Add Recipient</CardTitle>
-          <CardDescription>Add individual recipients with optional personalization fields</CardDescription>
+          <CardTitle>
+            Recipients ({selectedRecipients.length} selected)
+          </CardTitle>
+          <CardDescription>Select recipients for your campaign</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="recipient@example.com"
-                onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={newFirstName}
-                onChange={(e) => setNewFirstName(e.target.value)}
-                placeholder="John"
-                onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={newLastName}
-                onChange={(e) => setNewLastName(e.target.value)}
-                placeholder="Doe"
-                onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="schoolName">School Name</Label>
-              <Input
-                id="schoolName"
-                value={newSchoolName}
-                onChange={(e) => setNewSchoolName(e.target.value)}
-                placeholder="National University of Singapore"
-                onKeyDown={(e) => e.key === 'Enter' && addRecipient()}
-              />
-            </div>
-          </div>
-          <Button onClick={addRecipient} className="mt-4">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Recipient
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Bulk Import</CardTitle>
-          <CardDescription>Add multiple email addresses (one per line)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Textarea
-              value={bulkEmails}
-              onChange={(e) => setBulkEmails(e.target.value)}
-              placeholder="email1@example.com&#10;email2@example.com&#10;email3@example.com"
-              className="min-h-[100px]"
-            />
-            <Button onClick={addBulkRecipients}>
-              <Upload className="mr-2 h-4 w-4" />
-              Import Emails
+          <div className='mb-4 flex gap-2'>
+            <Button
+              onClick={handleSelectAllGlobal}
+              disabled={selectedRecipients.length === allRecipients.length}
+              variant='outline'
+              size='sm'
+            >
+              Select All Recipients
+            </Button>
+            <Button
+              onClick={handleUnselectAllGlobal}
+              disabled={selectedRecipients.length === 0}
+              variant='outline'
+              size='sm'
+            >
+              Unselect All Recipients
             </Button>
           </div>
+          {allRecipients.length === 0 ? (
+            <div className='text-center py-8 text-secondary-content'>
+              Loading recipients...
+            </div>
+          ) : (
+            <>
+              <div className='data-table'>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="px-4">
+                        <input
+                          type='checkbox'
+                          checked={allSelected}
+                          onChange={(e) =>
+                            handleSelectAllPage(e.target.checked)
+                          }
+                        />
+                      </TableHead>
+                      <TableHead className="px-4">Name</TableHead>
+                      <TableHead className="px-4">Email</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginated.map((recipient) => (
+                      <TableRow key={recipient.email} className='py-4'>
+                        <TableCell className="px-4">
+                          <input
+                            type='checkbox'
+                            checked={selectedRecipients.some(
+                              (s) => s.email === recipient.email
+                            )}
+                            onChange={(e) =>
+                              handleSelect(recipient, e.target.checked)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="px-4">{recipient.name}</TableCell>
+                        <TableCell className="px-4">{recipient.email}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className='flex justify-between items-center mt-4'>
+                <div>
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div>
+                  <Button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    variant='outline'
+                    size='sm'
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    variant='outline'
+                    size='sm'
+                    className='ml-2'
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recipients ({recipients.length})</CardTitle>
-          <CardDescription>Manage your recipient list</CardDescription>
+          <CardTitle>
+            Selected Recipients ({selectedRecipients.length})
+          </CardTitle>
+          <CardDescription>Recipients chosen for the campaign</CardDescription>
         </CardHeader>
         <CardContent>
-          {recipients.length === 0 ? (
-            <div className="text-center py-8 text-secondary-content">
-              No recipients added yet. Add recipients using the form above.
-            </div>
+          {selectedRecipients.length === 0 ? (
+            <p>No recipients selected.</p>
           ) : (
-            <div className="data-table">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>First Name</TableHead>
-                    <TableHead>Last Name</TableHead>
-                    <TableHead>School</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recipients.map((recipient) => (
-                    <TableRow key={recipient.id}>
-                      <TableCell>{recipient.email}</TableCell>
-                      <TableCell>{recipient.firstName || '-'}</TableCell>
-                      <TableCell>{recipient.lastName || '-'}</TableCell>
-                      <TableCell>{recipient.schoolName || '-'}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeRecipient(recipient.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <ul className='list-disc list-inside'>
+              {selectedRecipients.map((r) => (
+                <li key={r.email}>
+                  {r.name} ({r.email})
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>
