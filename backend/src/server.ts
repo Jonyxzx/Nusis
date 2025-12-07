@@ -22,6 +22,7 @@ app.use(
     secret: process.env.SESSION_SECRET || "default_secret", // replace with a strong secret in production
     resave: false,
     saveUninitialized: false,
+    proxy: process.env.NODE_ENV === "production", // trust reverse proxy
     cookie: { 
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
