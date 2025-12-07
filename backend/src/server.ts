@@ -5,7 +5,7 @@ import session from "express-session";
 import passport from "passport";
 import authRouter from './auth/auth';
 import initPassport from "./auth/passport";
-import { connectToDatabase, disconnectDatabase } from "./db/mongo";
+import { connectToDatabase, disconnectDatabase, getDb } from "./db/mongo";
 import recipientRouter from "./routes/recipientRoute";
 import logRouter from "./routes/logRoute";
 import emailTemplateRouter from "./routes/emailRoute";
@@ -58,8 +58,27 @@ app.get("/api/me", (req, res) => {
 });
 
 // health check
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", uptime: process.uptime() });
+app.get("/health", async (_req, res) => {
+  try {
+    // Check database connectivity
+    const db = getDb();
+    await db.admin().ping();
+    
+    res.json({ 
+      status: "ok", 
+      uptime: process.uptime(),
+      database: "connected",
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: "error", 
+      uptime: process.uptime(),
+      database: "disconnected",
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 });
 
 async function start() {
