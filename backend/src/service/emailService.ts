@@ -76,11 +76,15 @@ export async function deleteEmailTemplate(id: string): Promise<boolean> {
 }
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASS,
   },
+  logger: true,
+  debug: true,
 });
 
 export async function sendEmailCampaign(templateId: string, recipientIds: string[], variables: Record<string, any> = {}) {
