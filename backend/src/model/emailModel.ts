@@ -1,10 +1,17 @@
 import { Collection, ObjectId, WithId } from "mongodb";
 import { getDb } from "../db/mongo";
 
+export interface Attachment {
+	filename: string;
+	content: string; // base64 encoded content
+	contentType: string;
+}
+
 export type EmailTemplate = {
 	name: string;
 	subject: string;
 	body: string; // HTML or plain text
+	attachments?: Attachment[]; // optional attachments
 	fromName?: string;
 	fromEmail?: string;
 	createdAt?: Date;

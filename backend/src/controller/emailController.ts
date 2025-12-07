@@ -10,7 +10,7 @@ import {
 
 export async function emailTemplateCreateHandler(req: Request, res: Response) {
 	try {
-	const { name, subject, body } = req.body || {};
+	const { name, subject, body, attachments } = req.body || {};
 		if (!name || typeof name !== "string") {
 			return res.status(400).json({ error: "name is required" });
 		}
@@ -22,7 +22,11 @@ export async function emailTemplateCreateHandler(req: Request, res: Response) {
 		}
 		// Encode body to base64 before saving
 		const encodedBody = Buffer.from(body, 'utf-8').toString('base64');
-		const created = await createEmailTemplate({ name, subject, body: encodedBody });
+		const templateData: any = { name, subject, body: encodedBody };
+		if (attachments && Array.isArray(attachments)) {
+			templateData.attachments = attachments;
+		}
+		const created = await createEmailTemplate(templateData);
 		res.status(201).json(created);
 	} catch (err) {
 		console.error("emailTemplateCreateHandler error:", err);
@@ -56,7 +60,7 @@ export async function emailTemplateGetHandler(req: Request, res: Response) {
 	export async function emailTemplateUpdateHandler(req: Request, res: Response) {
 	try {
 		const { id } = req.params;
-		const { name, subject, body } = req.body || {};
+		const { name, subject, body, attachments } = req.body || {};
 		const update: any = {};
 		if (name !== undefined) {
 			if (typeof name !== "string" || name.trim() === "") return res.status(400).json({ error: "invalid name" });
@@ -70,6 +74,9 @@ export async function emailTemplateGetHandler(req: Request, res: Response) {
 			if (typeof body !== "string" || !body) return res.status(400).json({ error: "invalid body" });
 			// Encode body to base64 before saving
 			update.body = Buffer.from(body, 'utf-8').toString('base64');
+		}
+		if (attachments !== undefined) {
+			update.attachments = Array.isArray(attachments) ? attachments : [];
 		}
 		const updated = await updateEmailTemplate(id, update);
 		if (!updated) {

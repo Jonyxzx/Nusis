@@ -24,6 +24,14 @@ export default function initPassport() {
         profile: any,
         done: Function
       ) => {
+        // Check if user email is allowed
+        const userEmail = profile.emails?.[0]?.value;
+        const allowedEmails = process.env.ALLOWED_EMAILS?.split(',').map(e => e.trim()) || [];
+        
+        if (allowedEmails.length > 0 && !allowedEmails.includes(userEmail)) {
+          return done(null, false, { message: 'Email not authorized' });
+        }
+
         // Here: find or create user in your DB.
         // For quick testing you can pass profile directly
         const user = {

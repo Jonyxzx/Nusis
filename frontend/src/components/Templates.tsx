@@ -9,6 +9,7 @@ const TEMPLATE_FIELDS = [
   { key: 'name', label: 'Name', type: 'text' as const, required: true, placeholder: 'Enter template name' },
   { key: 'subject', label: 'Subject', type: 'text' as const, required: true, placeholder: 'Enter email subject' },
   { key: 'body', label: 'HTML File', type: 'file' as const, required: true, accept: '.html', placeholder: 'Select HTML file' },
+  { key: 'attachments', label: 'Attachments', type: 'file' as const, required: false, accept: '*', multiple: true, placeholder: 'Select files to attach (optional)', helperText: 'You can select multiple files to attach to the email' },
 ];
 
 const TEMPLATE_COLUMNS = [

@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
+export interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType: string;
+}
+
 export type EmailTemplate = {
   _id?: string;
   name: string;
   subject: string;
   body: string;
+  attachments?: Attachment[];
   createdAt?: string;
   updatedAt?: string;
 };

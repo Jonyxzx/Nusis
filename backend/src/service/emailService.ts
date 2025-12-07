@@ -120,12 +120,21 @@ export async function sendEmailCampaign(templateId: string, recipientIds: string
       const compiled = Handlebars.compile(htmlBody);
       const html = compiled(templateVariables);
 
+      // Prepare attachments if any
+      const attachments = template.attachments?.map(att => ({
+        filename: att.filename,
+        content: att.content,
+        encoding: 'base64' as const,
+        contentType: att.contentType,
+      })) || [];
+
       // Send email to all addresses for this recipient (group send)
       const info = await transporter.sendMail({
         from: `${process.env.GMAIL_NAME} <${process.env.GMAIL_USER}>`,
         to: recipient.emails.join(', '), // Send to all emails for this recipient
         subject: template.subject,
         html,
+        attachments,
       });
 
       // Record result for each email in the group

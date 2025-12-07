@@ -19,6 +19,8 @@ interface Field {
   required?: boolean;
   placeholder?: string;
   accept?: string; // For file inputs
+  multiple?: boolean; // For multiple file uploads
+  helperText?: string; // Helper text for the field
 }
 
 interface CrudDialogProps<T> {
@@ -109,8 +111,8 @@ export function CrudDialog<T extends Record<string, unknown>>({
       return;
     }
 
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith(".html")) {
+    // Validate file type for body field only
+    if (key === 'body' && !file.name.toLowerCase().endsWith(".html")) {
       setErrors((prev) => ({
         ...prev,
         [key]: "Please select an HTML file (.html)",
@@ -127,6 +129,50 @@ export function CrudDialog<T extends Record<string, unknown>>({
       }
     } catch {
       setErrors((prev) => ({ ...prev, [key]: "Failed to read file" }));
+    }
+  };
+
+  const handleMultipleFilesChange = async (key: string, files: FileList | null) => {
+    if (!files || files.length === 0) {
+      setFormData((prev) => ({ ...prev, [key]: [] }));
+      setFileContents((prev) => ({ ...prev, [key]: "" }));
+      return;
+    }
+
+    try {
+      const attachments = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const content = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              // Extract base64 content (remove data:mime;base64, prefix)
+              const base64 = result.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          return {
+            filename: file.name,
+            content,
+            contentType: file.type || 'application/octet-stream',
+          };
+        })
+      );
+
+      setFormData((prev) => ({ ...prev, [key]: attachments }));
+      setFileContents((prev) => ({ 
+        ...prev, 
+        [key]: files.length === 1 ? files[0].name : `${files.length} files selected`
+      }));
+      
+      if (errors[key]) {
+        setErrors((prev) => ({ ...prev, [key]: "" }));
+      }
+    } catch {
+      setErrors((prev) => ({ ...prev, [key]: "Failed to read files" }));
     }
   };
 
@@ -176,20 +222,28 @@ export function CrudDialog<T extends Record<string, unknown>>({
                             htmlFor={field.key}
                             className="inline-flex items-center px-3 py-2 text-sm font-medium text-foreground bg-muted hover:bg-muted/80 border border-input rounded-md cursor-pointer transition-colors"
                           >
-                            Choose File
+                            Choose {field.multiple ? "Files" : "File"}
                             <Input
                               id={field.key}
                               type="file"
                               accept={field.accept || ".html"}
+                              multiple={field.multiple || false}
                               onChange={(e) => {
-                                const file = e.target.files?.[0] || null;
-                                handleFileChange(field.key, file);
+                                if (field.multiple) {
+                                  handleMultipleFilesChange(field.key, e.target.files);
+                                } else {
+                                  const file = e.target.files?.[0] || null;
+                                  handleFileChange(field.key, file);
+                                }
                               }}
                               className="hidden"
                             />
                           </label>
                         </div>
                       </div>
+                      {field.helperText && (
+                        <span className="text-xs text-muted-foreground">{field.helperText}</span>
+                      )}
                     </div>
                   ) : (
                     <Input

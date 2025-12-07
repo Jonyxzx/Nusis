@@ -12,10 +12,17 @@ import { naturalCompare } from "@/lib/sortingUtils";
 import { Label } from "./ui/label";
 import api from "@/lib/api";
 
+export interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType: string;
+}
+
 export interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
+  attachments?: Attachment[];
 }
 
 interface EmailTemplateEditorProps {
@@ -32,6 +39,7 @@ export function EmailTemplateEditor({
       name: "",
       subject: "",
       body: "",
+      attachments: [],
     }
   );
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -220,6 +228,18 @@ export function EmailTemplateEditor({
                   "(No content)"
                 )}
               </div>
+              {template.attachments && template.attachments.length > 0 && (
+                <>
+                  <div className='text-sm text-gray-600 mt-3'>Attachments:</div>
+                  <div className='text-black'>
+                    <ul className='list-disc list-inside'>
+                      {template.attachments.map((att) => (
+                        <li key={att.filename}>{att.filename} ({att.contentType})</li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
