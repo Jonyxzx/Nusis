@@ -122,12 +122,15 @@ export function CrudDialog<T extends Record<string, unknown>>({
 
     try {
       const content = await file.text();
-      setFormData((prev) => ({ ...prev, [key]: content }));
+      // Encode body to base64 before sending to backend
+      const encodedContent = key === 'body' ? btoa(unescape(encodeURIComponent(content))) : content;
+      setFormData((prev) => ({ ...prev, [key]: encodedContent }));
       setFileContents((prev) => ({ ...prev, [key]: file.name }));
       if (errors[key]) {
         setErrors((prev) => ({ ...prev, [key]: "" }));
       }
-    } catch {
+    } catch (error) {
+      console.error('File upload error:', error);
       setErrors((prev) => ({ ...prev, [key]: "Failed to read file" }));
     }
   };

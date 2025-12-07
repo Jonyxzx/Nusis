@@ -20,9 +20,7 @@ export async function emailTemplateCreateHandler(req: Request, res: Response) {
 		if (!body || typeof body !== "string") {
 			return res.status(400).json({ error: "body is required" });
 		}
-		// Encode body to base64 before saving
-		const encodedBody = Buffer.from(body, 'utf-8').toString('base64');
-		const templateData: any = { name, subject, body: encodedBody };
+		const templateData: any = { name, subject, body };
 		if (attachments && Array.isArray(attachments)) {
 			templateData.attachments = attachments;
 		}
@@ -72,8 +70,7 @@ export async function emailTemplateGetHandler(req: Request, res: Response) {
 		}
 		if (body !== undefined) {
 			if (typeof body !== "string" || !body) return res.status(400).json({ error: "invalid body" });
-			// Encode body to base64 before saving
-			update.body = Buffer.from(body, 'utf-8').toString('base64');
+			update.body = body;
 		}
 		if (attachments !== undefined) {
 			update.attachments = Array.isArray(attachments) ? attachments : [];
